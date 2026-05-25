@@ -1,577 +1,482 @@
-<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thawing Reminder - Alarm Agresif & Persistent (MLGJAK)</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gacoan Delivery & QC System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        /* ==================== 
-           CSS: STYLING & RESPONSIVITAS (Dibiarkan sama)
-           ==================== */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4ff;
-            min-height: 100vh;
-            margin: 0; aaa
-            padding: 20px 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            transition: background-color 0.2s; 
-        }
-
-        .main-container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 100%;
-            max-width: 800px;
-            box-sizing: border-box; 
-        }
-
-        .timer-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .timer-card {
-            border: 2px solid #ddd;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            transition: all 0.3s;
-            text-align: left;
-        }
-
-        .timer-card h2 {
-            color: #007bff;
-            padding-bottom: 10px;
-            font-size: 1.2em;
-        }
-
-        .timer-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            align-items: center;
-        }
-
-        .timer-controls input {
-            padding: 8px;
-            flex-grow: 1; 
-            max-width: 80px; 
-            text-align: center; 
-        }
-
-        .timer-controls button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            flex-grow: 1; 
-            white-space: nowrap;
-        }
-
-        .start-btn { background-color: #28a745; color: white; }
-        .reset-btn { background-color: #dc3545; color: white; }
-
-        .countdown-display {
-            font-size: 2em;
-            margin: 15px 0;
-            padding: 10px;
-            font-weight: bold;
-            text-align: center;
-            background-color: #e9ecef;
-            color: #333;
-        }
-
-        /* --- STATE ALERT CSS --- */
-
-        /* WARNING (15 Menit) */
-        .timer-card.warning {
-            border-color: orange;
-            box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
-        }
-        .timer-card.warning .countdown-display {
-            background-color: #fff3cd; 
-            color: #ff8c00; 
-            animation: pulse-warn 1s infinite alternate; 
-        }
-
-        /* ALERT (Waktu Habis) */
-        .timer-card.alert {
-            border-color: red;
-            background-color: #ffeaea;
-            box-shadow: 0 0 10px rgba(220, 53, 69, 0.7);
-        }
-        .timer-card.alert .countdown-display {
-            background-color: #f8d7da; 
-            color: #dc3545; 
-            font-size: 1.8em;
-            animation: none;
-        }
-        
-        /* ALARM GLOBAL AGRESIF (Flash Body) */
-        .flash-alarm-red {
-            background-color: #ff0000 !important; 
-            transition: background-color 0.2s; 
-        }
-
-        /* ANIMASI */
-        @keyframes pulse-warn {
-            from { transform: scale(1); }
-            to { transform: scale(1.02); }
-        }
-
-        /* MEDIA QUERY - OPTIMALISASI MOBILE */
-        @media (max-width: 650px) {
-            body { padding: 10px 0; }
-            .main-container { padding: 15px; box-shadow: none; }
-            h1 { font-size: 1.5em; }
-            .timer-list { grid-template-columns: 1fr; gap: 10px; } 
-            .timer-card { padding: 10px; }
-            .timer-card h2 { font-size: 1.1em; }
-            .countdown-display { font-size: 1.8em; margin: 10px 0; padding: 8px; }
-            
-            .timer-controls { flex-wrap: wrap; justify-content: space-between; gap: 5px; }
-            .timer-controls label { font-size: 0.9em; flex-basis: 100%; text-align: left;}
-            .timer-controls input { padding: 6px; max-width: 60px; }
-            .timer-controls button { padding: 8px 10px; font-size: 0.85em; flex-basis: calc(50% - 5px); }
-        }
+        .hidden { display: none; }
+        /* Kustomisasi scrollbar halus untuk list menu */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
-<body>
-    <div class="main-container">
-        <h1>Timer Thawing Reminder 🧊 (SHARED)</h1>
-        <p>Status timer dibagikan dan disinkronkan secara real-time ke semua perangkat.</p>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased font-sans">
+
+    <div class="bg-blue-700 text-white px-5 pt-2 pb-1 flex justify-between items-center text-xs font-semibold tracking-wider">
+        <span id="live-clock">09:41</span>
+        <div class="flex space-x-1.5 items-center">
+            <span>📶</span><span>🔋</span>
+        </div>
+    </div>
+
+    <main class="flex-grow flex flex-col max-w-md mx-auto w-full bg-white shadow-xl overflow-hidden relative">
         
-        <div class="timer-list" id="timer-list">
+        <div id="role-view" class="p-6 flex flex-col justify-center items-center my-auto space-y-6 w-full">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm">📦</div>
+                <h2 class="text-xl font-extrabold text-slate-900 tracking-wide">GACOAN QC SYSTEM</h2>
+                <p class="text-xs text-slate-500 max-w-[250px] mx-auto">Pilih stasiun kerja Anda untuk memulai manajemen pesanan keluar.</p>
             </div>
+            <div class="w-full space-y-3">
+                <button onclick="switchRole('packer')" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                    <span>📦 TIM PACKER</span>
+                </button>
+                <button onclick="switchRole('presenter')" class="w-full bg-slate-800 hover:bg-slate-900 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                    <span>💁‍♂️ TIM PRESENTER (MONITOR)</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="packer-master-container" class="hidden flex-grow flex flex-col">
+            
+            <div id="packer-step-1" class="flex-grow flex flex-col justify-between p-5">
+                <div class="space-y-6">
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Pesanan Keluar</h2>
+                        <p class="text-xs text-slate-400 font-medium">Track pesanan barang keluar / menu gacoan</p>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 shadow-xs">
+                        <div class="flex items-center space-x-2 text-blue-600 font-bold text-sm">
+                            <span>👤</span> <span>Data Pemesan</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-500">Nama Customer / Pemesan</label>
+                            <input type="text" id="cust-name-input" placeholder="Masukkan nama customer / nomor meja" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 shadow-xs">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold text-slate-500">Catatan (Opsional)</label>
+                            <textarea id="cust-note-input" rows="3" placeholder="Masukkan catatan jika ada" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 resize-none shadow-xs"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="packerGoToStep2()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center space-x-2 transition mt-4">
+                    <span>LANJUT KE SCAN</span> <span>→</span>
+                </button>
+            </div>
+
+            <div id="packer-step-2" class="hidden flex-grow flex flex-col justify-between p-4 space-y-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center shadow-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">👤</div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Customer</p>
+                            <h4 id="display-cust-name" class="text-sm font-bold text-slate-800">-</h4>
+                        </div>
+                    </div>
+                    <button onclick="packerBackToStep1()" class="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100">GANTI</button>
+                </div>
+
+                <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+                    <div id="interactive" class="w-full h-full object-cover"></div>
+                    
+                    <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
+                        <div class="flex justify-between">
+                            <div class="w-6 h-6 border-t-4 border-l-4 border-blue-600 rounded-tl-sm"></div>
+                            <div class="w-6 h-6 border-t-4 border-r-4 border-blue-600 rounded-tr-sm"></div>
+                        </div>
+                        <div class="w-full h-0.5 bg-blue-500 opacity-80 shadow-[0_0_8px_#2563eb] animate-bounce"></div>
+                        <div class="flex justify-between">
+                            <div class="w-6 h-6 border-b-4 border-l-4 border-blue-600 rounded-bl-sm"></div>
+                            <div class="w-6 h-6 border-b-4 border-r-4 border-blue-600 rounded-br-sm"></div>
+                        </div>
+                    </div>
+
+                    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col justify-center items-center text-center p-4" id="camera-placeholder">
+                        <span class="text-3xl mb-1">📊</span>
+                        <p class="text-sm font-bold text-white">Siap untuk scan</p>
+                        <p class="text-[11px] text-slate-200 max-w-[200px] mt-0.5">Arahkan scanner ke barcode untuk menambahkan item</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs text-slate-400 font-bold justify-center">
+                    <div class="h-px bg-slate-200 w-full"></div>
+                    <span>atau</span>
+                    <div class="h-px bg-slate-200 w-full"></div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <input type="text" id="manual-barcode-input" placeholder="Input barcode manual" class="flex-grow bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500">
+                    <button onclick="addBarcodeManual()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 rounded-xl transition uppercase tracking-wider">TAMBAH</button>
+                </div>
+
+                <div class="flex-grow flex flex-col min-h-[150px] max-h-[220px]">
+                    <div class="flex justify-between items-center mb-1.5 px-1">
+                        <span class="text-xs font-bold text-slate-700" id="packer-list-count">Daftar Item (0)</span>
+                        <button onclick="clearPackerTempList()" class="text-[10px] font-bold text-red-500 hover:underline">🗑 HAPUS SEMUA</button>
+                    </div>
+                    <div id="packer-temp-list" class="flex-grow overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-100 bg-slate-50/50 p-2 space-y-1.5">
+                        <p class="text-xs text-slate-400 text-center py-8 italic">Belum ada item yang di-scan.</p>
+                    </div>
+                </div>
+
+                <button onclick="packerGoToStep3()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center space-x-2 text-sm transition">
+                    <span>LANJUT KE SUBMIT</span> <span>→</span>
+                </button>
+            </div>
+
+            <div id="packer-step-3" class="hidden flex-grow flex flex-col justify-between p-5 space-y-4">
+                <div class="space-y-5 flex-grow overflow-y-auto pr-1">
+                    <div class="text-center space-y-1.5 py-4">
+                        <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xl mx-auto shadow-xs">✓</div>
+                        <h3 class="text-lg font-extrabold text-slate-900">Pesanan Berhasil Disubmit!</h3>
+                        <p class="text-xs text-slate-400 font-medium">Data pesanan telah tersimpan ke monitor presenter.</p>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 shadow-xs text-xs">
+                        <h4 class="font-bold text-slate-700 border-b border-slate-200 pb-1.5 text-sm">Ringkasan Pesanan</h4>
+                        <div class="flex justify-between"><span class="text-slate-400 font-medium">Customer</span><span class="font-bold text-slate-800" id="summary-cust-name">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400 font-medium">Waktu Mulai</span><span class="font-semibold text-slate-700" id="summary-time">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400 font-medium">Total Item</span><span class="font-bold text-blue-600" id="summary-total-item">0 Barcode</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-400 font-medium">Status</span><span class="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-md border border-green-200 text-[10px]">SELESAI</span></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-600 px-1">Daftar Barcode</h4>
+                        <div id="summary-barcode-list" class="divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-white max-h-48 overflow-y-auto space-y-1">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <button onclick="resetToNewOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md text-sm transition">
+                        ➕ PESANAN BARU
+                    </button>
+                    <button onclick="location.reload()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl border border-slate-200 text-sm transition">
+                        🔄 LIHAT RIWAYAT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="presenter-master-container" class="hidden flex-grow flex flex-col p-4 space-y-4">
+            <div class="bg-slate-800 text-white border border-slate-700 rounded-2xl p-4 shadow-lg flex-grow flex flex-col min-h-[400px]">
+                <div class="border-b border-slate-700 pb-3 mb-3 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-sm font-black tracking-wide text-slate-300 uppercase">MONITOR ANTRIAN PACKING</h2>
+                        <p class="text-[10px] text-slate-400 font-medium">Real-time Sinkronisasi Mie Gacoan</p>
+                    </div>
+                    <span id="presenter-order-count" class="bg-blue-500/20 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-md border border-blue-500/30">0 Pesanan</span>
+                </div>
+
+                <div id="presenter-live-orders" class="flex-grow overflow-y-auto space-y-4 pr-1">
+                    <p class="text-slate-500 text-center py-20 text-sm italic">Belum ada pesanan masuk dari Tim Packer...</p>
+                </div>
+            </div>
+            
+            <button onclick="location.reload()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition text-xs border border-slate-300">
+                ← KEMBALI KE SELEKSI ROLE
+            </button>
+        </div>
+
+    </main>
+
+    <div class="bg-white border-t border-slate-200 px-6 py-3 max-w-md mx-auto w-full flex justify-around items-center shadow-lg text-slate-400 text-[11px] font-bold">
+        <button onclick="location.reload()" class="flex flex-col items-center space-y-1 text-blue-600">
+            <span class="text-xl">📋</span>
+            <span>Pesanan Keluar</span>
+        </button>
+        <button onclick="alert('Fitur Riwayat dalam pengembangan operasional')" class="flex flex-col items-center space-y-1 hover:text-slate-600 transition">
+            <span class="text-xl">📁</span>
+            <span>Riwayat</span>
+        </button>
     </div>
 
     <script>
-       // ===================================
-// FIREBASE CONFIGURATION
-// ===================================
-const firebaseConfig = {
-  apiKey: "AIzaSyBtUlghTw806GuGuwOXGNgoqN6Rkcg0IMM",
-  authDomain: "thawing-ec583.firebaseapp.com",
-  databaseURL: "https://thawing-ec583-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "thawing-ec583",
-  storageBucket: "thawing-ec583.firebasestorage.app", 
-  messagingSenderId: "1043079332713",
-  appId: "1:1043079332713:web:6d289ad2b7c13a222bb3f8",
-  measurementId: "G-WLBFJ6V7QT"            
-};
+        // 1. DATABASE FIREBASE CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKeyJanganLupaDigantiYa12345",
+            authDomain: "gacoan-qc.firebaseapp.com",
+            databaseURL: "https://gacoan-qc-default-rtdb.firebaseio.com/", 
+            projectId: "gacoan-qc",
+            storageBucket: "gacoan-qc.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const rootOrdersRef = database.ref('gacoan_active_orders');
 
+        // SKU Master Data Gacoan (Barcode Garis 1D)
+        const gacoanSKUDatabase = {
+            "8991000012345": "Mie Gacoan Lvl 1",
+            "8991000056789": "Mie Hompimpa Lvl 3",
+            "8991000098765": "Udang Keju (Isi 3)",
+            "8992000011111": "Udang Rambutan",
+            "8993000022222": "Es Gobak Sodor"
+        };
 
-        // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-        } catch (e) {
-            console.error("Firebase Initialization Failed. Check your config.", e);
-        }
-        
-        // Dapatkan referensi database
-        const dbRef = firebase.database().ref('thawingTimers');
-        
-        /* ==================== 
-           JAVASCRIPT LOGIC 
-           ==================== */
-        
-        // --- KONFIGURASI APLIKASI ---
-        const THAWING_ITEMS = [
-            { id: 1, name: "ADONAN", defaultTimeMinutes: 40 },
-            { id: 2, name: "ACIN", defaultTimeMinutes: 60 },
-            { id: 3, name: "MIE", defaultTimeMinutes: 120 },
-            { id: 4, name: "PENTOL", defaultTimeMinutes: 120 },
-            { id: 5, name: "SURAI NAGA", defaultTimeMinutes: 120 },
-            { id: 6, name: "KRUPUK MIE", defaultTimeMinutes: 120 },
-        ];
-        
-        const WARNING_TIME_SECONDS = 15 * 60; // 15 menit
+        let html5QrCode = null;
+        let packerTempItems = []; // Array menampung list scan sebelum disubmit final
+        let currentCustomerName = "";
+        let currentCustomerNote = "";
 
-        // --- VARIABEL GLOBAL ALARM AGRESIF ---
-        let activeIntervals = {}; 
-        let audioCtx;
-        let notificationPermission = Notification.permission;
-        
-        let titleInterval = null;
-        let flashInterval = null;
-        const originalTitle = document.title;
-        const WARNING_TITLE_PREFIX = '🚨 HABIS! - ';
-        const FLASH_COLOR_CLASS = 'flash-alarm-red'; 
+        // Jam Live digital bagian atas
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
 
-        // Fungsi Format Waktu
-        function formatTime(totalSeconds) {
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-
-            const h = String(hours).padStart(2, '0');
-            const m = String(minutes).padStart(2, '0');
-            const s = String(seconds).padStart(2, '0');
-
-            return `${h}:${m}:${s}`;
-        }
-        
-        function resumeAudioContext() {
-             // Dibiarkan untuk kompatibilitas, tapi playBeep tidak digunakan lagi
-             if (audioCtx && audioCtx.state === 'suspended') {
-                 audioCtx.resume().catch(e => console.error("Failed to resume AudioContext:", e));
-             }
-        }
-        
-        // Fungsi playBeep dan playAlarm dinonaktifkan dan diabaikan karena diganti TTS
-        function playBeep(frequency, durationMs) { /* Dihapus */ }
-        function playAlarm(times = 8) { /* Dihapus */ }
-        
-        // =================================================
-        // 🚨 FUNGSI BARU: TEXT-TO-SPEECH
-        // =================================================
-        function speakMessage(message) {
-            if ('speechSynthesis' in window) {
-                // Hentikan ucapan yang sedang berjalan
-                window.speechSynthesis.cancel(); 
-                
-                const utterance = new SpeechSynthesisUtterance(message);
-                
-                const voices = window.speechSynthesis.getVoices();
-                const indoVoice = voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID');
-                
-                if (indoVoice) {
-                    utterance.voice = indoVoice;
-                } else {
-                    utterance.lang = 'id-ID'; // Fallback
-                }
-                
-                utterance.rate = 1.0; 
-                utterance.volume = 1.0; 
-                
-                window.speechSynthesis.speak(utterance);
-            } else {
-                console.warn("Web Speech API tidak didukung. Alarm ucapan dinonaktifkan.");
+        // 2. CONTROLLER ROLE & NAVIGATION
+        function switchRole(role) {
+            document.getElementById('role-view').classList.add('hidden');
+            if (role === 'packer') {
+                document.getElementById('packer-master-container').classList.remove('hidden');
+            } else if (role === 'presenter') {
+                document.getElementById('presenter-master-container').classList.remove('hidden');
+                listenToPresenterDatabase();
             }
         }
-        // =================================================
 
+        // --- PACKER FLOW LOGIC ---
+        function packerGoToStep2() {
+            const name = document.getElementById('cust-name-input').value.trim();
+            if (!name) {
+                alert("Harap masukkan Nama Customer atau Nomor Antrean terlebih dahulu!");
+                return;
+            }
+            currentCustomerName = name;
+            currentCustomerNote = document.getElementById('cust-note-input').value.trim();
+            
+            document.getElementById('display-cust-name').innerText = currentCustomerName;
+            document.getElementById('packer-step-1').classList.add('hidden');
+            document.getElementById('packer-step-2').classList.remove('hidden');
+            
+            // Sembunyikan instruksi placeholder, jalankan kamera asli
+            document.getElementById('camera-placeholder').classList.add('hidden');
+            start1DHighSpeedScanner();
+        }
 
-        function sendNotification(itemName) {
-            if (notificationPermission === 'granted') {
-                new Notification("⏰ WAKTU THAWING HABIS!", {
-                    body: `🚨 Segera ambil bahan: ${itemName}.`,
-                    tag: 'thawing-alarm',
-                    renotify: true, 
-                    requireInteraction: true 
-                }).onclick = function() {
-                    window.focus(); 
-                    this.close();
-                    stopAggressiveAlarm(); 
+        function packerBackToStep1() {
+            stopScanner();
+            document.getElementById('packer-step-2').classList.add('hidden');
+            document.getElementById('packer-step-1').classList.remove('hidden');
+        }
+
+        // ENGINE DETEKSI BARCODE GARIS (1D)
+        function start1DHighSpeedScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("interactive");
+                const config = {
+                    fps: 25, // Pemindaian super cepat (25 frame per detik)
+                    qrbox: function(w, h) { return { width: w * 0.85, height: h * 0.45 }; }, // Bingkai pipih horizontal cocok untuk barcode garis
+                    aspectRatio: 1.333333, // Proporsional layar HP Android & iOS Safari standar
+                    // KUNCI UTAMA: Daftarkan semua format kode batang garis (1D) komersial
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.CODE_39
+                    ],
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } // Akselerasi hardware bawaan HP
                 };
+                html5QrCode.start({ facingMode: "environment" }, config, onBarcodeDetected).catch(err => console.error(err));
             }
         }
 
-        function startVibrationAlert() {
-            if ('vibrate' in navigator) {
-                const pattern = [1000, 500, 1000]; 
-                navigator.vibrate(pattern);
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => console.log(err));
             }
         }
 
-        function startFlashAlarm() {
-            if (flashInterval) return;
-            let isFlashing = false;
-            flashInterval = setInterval(() => {
-                isFlashing = !isFlashing;
-                document.body.classList.toggle(FLASH_COLOR_CLASS, isFlashing);
-            }, 200);
-        }
-
-        function startTitleAlert(itemName) {
-            if (titleInterval) return;
-            let isAlertState = false;
-            titleInterval = setInterval(() => {
-                isAlertState = !isAlertState;
-                document.title = isAlertState 
-                    ? WARNING_TITLE_PREFIX + itemName 
-                    : originalTitle;
-            }, 800);
-        }
-
-        function stopAggressiveAlarm() {
-            if (titleInterval) {
-                clearInterval(titleInterval);
-                titleInterval = null;
-            }
-            if (flashInterval) {
-                clearInterval(flashInterval);
-                flashInterval = null;
-            }
-            document.title = originalTitle;
-            document.body.classList.remove(FLASH_COLOR_CLASS);
-            // Hentikan suara ucapan
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); 
-            }
-        }
-        
-        // --- LOGIKA UTAMA: FUNGSI TICK DIMODIFIKASI UNTUK TTS ---
-        
-        /**
-         * Fungsi tick sekarang dipicu oleh listener Firebase.
-         */
-        function tick(itemId, endTimeMs, inputMinutes) {
-            const timerCard = document.getElementById(`card-${itemId}`);
-            if (!timerCard) return;
-
-            const display = document.getElementById(`display-${itemId}`);
-            const alarmMessage = document.getElementById(`msg-${itemId}`);
-            // Gunakan find() untuk mendapatkan item yang benar, karena innerHTML h2 bisa berubah
-            const item = THAWING_ITEMS.find(i => i.id === itemId);
-            const itemName = item ? item.name : 'Bahan';
+        function onBarcodeDetected(decodedText, decodedResult) {
+            // Cooldown haptic feedback getar singkat
+            if (navigator.vibrate) navigator.vibrate(60);
             
-            clearTimeout(activeIntervals[itemId]);
+            // Tambahkan item secara otomatis ke list sementara
+            insertItemToTempList(decodedText);
 
-            const now = Date.now();
-            let duration = Math.floor((endTimeMs - now) / 1000); 
-            
-            // Perbarui UI Kontrol
-            const inputTime = document.getElementById(`time-input-${itemId}`);
-            const startButton = document.getElementById(`start-btn-${itemId}`);
-            const resetButton = document.getElementById(`reset-btn-${itemId}`);
-            if (inputTime) inputTime.value = inputMinutes; 
-            if (inputTime) inputTime.readOnly = true;
-            if (startButton) startButton.style.display = 'none';
-            if (resetButton) resetButton.style.display = 'block';
-
-            // 1. Update tampilan
-            if (duration >= 0) {
-                 display.textContent = formatTime(duration);
-            }
-           
-            // 2. Transisi ke mode WARNING (15 Menit)
-            if (duration <= WARNING_TIME_SECONDS && duration > 0) {
-                if (!timerCard.classList.contains('warning')) {
-                    timerCard.classList.add('warning');
-                    timerCard.classList.remove('alert'); 
-                    const remainingMinutes = Math.ceil(duration / 60);
-                    alarmMessage.textContent = `🔔 PERINGATAN! ${itemName} tersisa ${remainingMinutes} menit.`;
-                    alarmMessage.style.display = 'block';
-                }
-            } else if (duration > WARNING_TIME_SECONDS) {
-                 timerCard.classList.remove('warning');
-                 alarmMessage.style.display = 'none';
-            }
-
-            // 3. Bunyikan alarm di mode WARNING (setiap 30 detik)
-            if (duration <= WARNING_TIME_SECONDS && duration > 0 && duration % 30 === 0) {
-                const remainingMinutes = Math.ceil(duration / 60);
-                // 🚨 TTS: Peringatan 15 Menit
-                speakMessage(`Perhatian! Waktu thawing ${itemName} kurang ${remainingMinutes} menit.`); 
-            }
-            
-            // 4. Kondisi Waktu Habis: (Alarm & Hapus dari database)
-            if (duration <= 0) {
-                // Hentikan interval lokal
-                clearTimeout(activeIntervals[itemId]);
-                delete activeIntervals[itemId];
-                
-                // Hapus entry dari Firebase
-                dbRef.child(itemId).remove().catch(e => console.log('Hapus item gagal.'));
-                
-                display.textContent = "WAKTU HABIS!";
-                timerCard.classList.remove('warning');
-                timerCard.classList.add('alert'); 
-                alarmMessage.textContent = `✅ SELESAI! Bahan ${itemName} butuh penanganan.`;
-                alarmMessage.style.display = 'block';
-                
-                // --- AKTIVASI ALARM AGRESIF (Lokal di perangkat ini) ---
-                sendNotification(itemName);
-                startVibrationAlert(); 
-                startTitleAlert(itemName);
-                startFlashAlarm();
-                
-                // 🚨 TTS: Waktu Habis
-                speakMessage(`PERINGATAN KERAS! Waktu thawing ${itemName} telah habis! Segera ambil bahan!`); 
-                
-                return; 
-            }
-            
-            // 5. Jadwalkan tick berikutnya (Lokal)
-            activeIntervals[itemId] = setTimeout(() => tick(itemId, endTimeMs, inputMinutes), 1000);
+            // Jeda sejenak 1 detik agar tidak terscan ganda tanpa sengaja
+            html5QrCode.pause(true);
+            setTimeout(() => { if (html5QrCode) html5QrCode.resume(); }, 1000);
         }
 
-        // --- FUNGSI PUBLIK (Dipanggil oleh User) ---
-        
-        // FUNGSI INI MENGIRIM PERUBAHAN KE FIREBASE
-        function startCountdown(itemId) {
-            resumeAudioContext(); 
-            Notification.requestPermission().then(permission => {
-                notificationPermission = permission; 
+        function addBarcodeManual() {
+            const codeInput = document.getElementById('manual-barcode-input');
+            const code = codeInput.value.trim();
+            if (code) {
+                insertItemToTempList(code);
+                codeInput.value = "";
+            }
+        }
+
+        function insertItemToTempList(barcodeStr) {
+            const timeStr = new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            const namaMenu = gacoanSKUDatabase[barcodeStr] || "SKU Asing (" + barcodeStr + ")";
+            
+            packerTempItems.push({
+                barcode: barcodeStr,
+                nama: namaMenu,
+                waktu: timeStr
             });
-            
-            const timerCard = document.getElementById(`card-${itemId}`);
-            const inputTime = document.getElementById(`time-input-${itemId}`);
-            const durationMinutes = parseInt(inputTime.value);
+            renderPackerTempList();
+        }
 
-            if (isNaN(durationMinutes) || durationMinutes <= 0) {
-                alert(`Mohon masukkan waktu thawing yang valid.`);
+        function removeSingleTempItem(index) {
+            packerTempItems.splice(index, 1);
+            renderPackerTempList();
+        }
+
+        function clearPackerTempList() {
+            packerTempItems = [];
+            renderPackerTempList();
+        }
+
+        function renderPackerTempList() {
+            const listContainer = document.getElementById('packer-temp-list');
+            document.getElementById('packer-list-count').innerText = `Daftar Item (${packerTempItems.length})`;
+            
+            if (packerTempItems.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-8 italic">Belum ada item yang di-scan.</p>';
                 return;
             }
             
-            const durationMs = durationMinutes * 60 * 1000;
-            const endTimeMs = Date.now() + durationMs; 
-            
-            // 🚨 LOGIKA UTAMA: TULIS KE DATABASE 
-            dbRef.child(itemId).set({ 
-                endTime: endTimeMs, 
-                inputMinutes: durationMinutes 
-            })
-            .then(() => {
-                console.log(`Timer ${itemId} started and synced.`);
-            })
-            .catch(error => {
-                alert("Gagal memulai timer. Periksa koneksi atau aturan Firebase.");
-                console.error(error);
+            listContainer.innerHTML = "";
+            packerTempItems.forEach((item, index) => {
+                listContainer.innerHTML += `
+                    <div class="bg-white border border-slate-100 rounded-xl p-3 flex justify-between items-center shadow-2xs">
+                        <div>
+                            <p class="text-xs font-bold text-slate-800">${item.nama}</p>
+                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">${item.waktu} • Code: ${item.barcode}</p>
+                        </div>
+                        <button onclick="removeSingleTempItem(${index})" class="text-slate-300 hover:text-red-500 font-bold px-2 text-sm transition">×</button>
+                    </div>
+                `;
             });
         }
 
-        // FUNGSI INI MENGHAPUS DATA DARI FIREBASE
-        function resetTimer(itemId) {
-            stopAggressiveAlarm(); 
-            
-            // 🚨 LOGIKA UTAMA: HAPUS DARI DATABASE
-            dbRef.child(itemId).remove()
-            .then(() => {
-                console.log(`Timer ${itemId} reset and synced.`);
-            })
-            .catch(error => {
-                alert("Gagal mereset timer. Periksa koneksi atau aturan Firebase.");
-                console.error(error);
+        // STEP 3: EXECUTE SUBMIT TO CLOUD
+        function packerGoToStep3() {
+            if (packerTempItems.length === 0) {
+                alert("Daftar item kosong! Harap scan minimal 1 produk sebelum lanjut.");
+                return;
+            }
+
+            stopScanner(); // Matikan kamera total
+
+            // Ambil waktu penyerahan final
+            const timeFinal = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) + ' ' + new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+            // PUSH STRUKTUR DATA KE FIREBASE
+            rootOrdersRef.push({
+                customer: currentCustomerName,
+                catatan: currentCustomerNote,
+                waktuMulai: timeFinal,
+                items: packerTempItems
             });
-            
-            // UI akan direset secara lokal oleh listener Firebase
-            localResetUI(itemId);
+
+            // Tampilkan data ke Ringkasan Final UI Halaman 3
+            document.getElementById('summary-cust-name').innerText = currentCustomerName;
+            document.getElementById('summary-time').innerText = timeFinal;
+            document.getElementById('summary-total-item').innerText = `${packerTempItems.length} Barcode`;
+
+            const summaryList = document.getElementById('summary-barcode-list');
+            summaryList.innerHTML = "";
+            packerTempItems.forEach((item, index) => {
+                summaryList.innerHTML += `
+                    <div class="flex items-center justify-between py-2 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-4 h-4 bg-emerald-50 text-emerald-600 font-bold rounded-sm text-[10px] flex items-center justify-center">${index + 1}</span>
+                            <span class="font-bold text-slate-800">${item.nama}</span>
+                        </div>
+                        <span class="text-slate-400 font-mono text-[10px]">${item.waktu}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('packer-step-2').classList.add('hidden');
+            document.getElementById('packer-step-3').classList.remove('hidden');
         }
 
-        // Mereset UI lokal berdasarkan item default
-        function localResetUI(itemId, inputMinutes = null) {
-            const item = THAWING_ITEMS.find(i => i.id === itemId);
-            if (!item) return;
-
-            const finalInput = inputMinutes !== null ? inputMinutes : item.defaultTimeMinutes;
-            
-            clearTimeout(activeIntervals[itemId]);
-            delete activeIntervals[itemId];
-
-            const timerCard = document.getElementById(`card-${itemId}`);
-            const inputTime = document.getElementById(`time-input-${itemId}`);
-            const display = document.getElementById(`display-${itemId}`);
-            const alarmMessage = document.getElementById(`msg-${itemId}`);
-            const startButton = document.getElementById(`start-btn-${itemId}`);
-            const resetButton = document.getElementById(`reset-btn-${itemId}`);
-            
-            if (!timerCard || !inputTime || !display) return; 
-
-            timerCard.classList.remove('alert', 'warning');
-            inputTime.readOnly = false;
-            startButton.style.display = 'block';
-            resetButton.style.display = 'none';
-            alarmMessage.style.display = 'none';
-
-            inputTime.value = finalInput;
-            display.textContent = formatTime(finalInput * 60);
-
-            inputTime.focus();
+        function resetToNewOrder() {
+            packerTempItems = [];
+            document.getElementById('cust-name-input').value = "";
+            document.getElementById('cust-note-input').value = "";
+            document.getElementById('packer-step-3').classList.add('hidden');
+            document.getElementById('packer-step-1').classList.remove('hidden');
         }
 
-        // Fungsi untuk membuat elemen HTML timer
-        function createTimerCard(item) {
-            const timerListContainer = document.getElementById('timer-list');
-            
-            const card = document.createElement('div');
-            card.className = 'timer-card';
-            card.id = `card-${item.id}`;
-            
-            card.innerHTML = `
-                <h2>${item.name}</h2>
-                <div id="display-${item.id}" class="countdown-display">
-                    ${formatTime(item.defaultTimeMinutes * 60)}
-                </div>
-                
-                <div id="msg-${item.id}" class="alarm-message" style="display: none;"></div>
 
-                <div class="timer-controls">
-                    <label for="time-input-${item.id}">Durasi (mnt):</label>
-                    <input type="number" id="time-input-${item.id}" value="${item.defaultTimeMinutes}" min="1" max="180">
-                    <button id="start-btn-${item.id}" class="start-btn">START</button>
-                    <button id="reset-btn-${item.id}" class="reset-btn" style="display: none;">RESET</button>
-                </div>
-            `;
-            
-            timerListContainer.appendChild(card);
-            
-            document.getElementById(`start-btn-${item.id}`).addEventListener('click', () => startCountdown(item.id));
-            document.getElementById(`reset-btn-${item.id}`).addEventListener('click', () => resetTimer(item.id));
+        // --- PRESENTER FLOW LOGIC (MONITOR REAL-TIME) ---
+        function listenToPresenterDatabase() {
+            rootOrdersRef.on('value', (snapshot) => {
+                const container = document.getElementById('presenter-live-orders');
+                container.innerHTML = "";
 
-            document.getElementById(`time-input-${item.id}`).addEventListener('input', (event) => {
-                if (!document.getElementById(`time-input-${item.id}`).readOnly) {
-                    const minutes = parseInt(event.target.value) || 0;
-                    const display = document.getElementById(`display-${item.id}`);
-                    display.textContent = formatTime(minutes * 60);
+                if (snapshot.exists()) {
+                    const allOrders = snapshot.val();
+                    let count = 0;
+
+                    Object.keys(allOrders).forEach(orderId => {
+                        const order = allOrders[orderId];
+                        count++;
+
+                        // Hitung Summary Qty per Jenis Menu
+                        const itemSummary = {};
+                        order.items.forEach(it => {
+                            itemSummary[it.nama] = (itemSummary[it.nama] || 0) + 1;
+                        });
+
+                        let itemsHtml = "";
+                        Object.keys(itemSummary).forEach(name => {
+                            itemsHtml += `
+                                <label class="flex items-center justify-between py-2 px-1 hover:bg-slate-700/50 rounded-lg cursor-pointer transition">
+                                    <div class="flex items-center space-x-2.5">
+                                        <input type="checkbox" class="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-0 accent-blue-500">
+                                        <span class="text-xs font-semibold text-slate-200">${name}</span>
+                                    </div>
+                                    <span class="bg-blue-500 text-white font-black text-[11px] px-2.5 py-0.5 rounded-md">x${itemSummary[name]}</span>
+                                </label>
+                            `;
+                        });
+
+                        container.innerHTML += `
+                            <div class="bg-slate-700/40 border border-slate-700 rounded-xl p-3.5 space-y-2.5">
+                                <div class="flex justify-between items-start border-b border-slate-700 pb-2">
+                                    <div>
+                                        <h3 class="text-sm font-black text-white tracking-wide">👤 ${order.customer}</h3>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">⏱ ${order.waktuMulai} ${order.catatan ? '• 📝 ' + order.catatan : ''}</p>
+                                    </div>
+                                    <button onclick="clearSingleOrder('${orderId}')" class="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-md font-bold transition shadow-xs">DONE / SERAHKAN</button>
+                                </div>
+                                <div class="divide-y divide-slate-800/40 space-y-1">
+                                    ${itemsHtml}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    document.getElementById('presenter-order-count').innerText = `${count} Pesanan`;
+                } else {
+                    document.getElementById('presenter-order-count').innerText = '0 Pesanan';
+                    container.innerHTML = '<p class="text-slate-500 text-center py-20 text-sm italic">Belum ada pesanan masuk dari Tim Packer...</p>';
                 }
             });
-            
-            localResetUI(item.id, item.defaultTimeMinutes);
         }
 
-        // ===================================
-        // 🚨 LOGIKA SINKRONISASI REAL-TIME
-        // ===================================
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Render semua kartu timer
-            THAWING_ITEMS.forEach(item => {
-                createTimerCard(item);
-            });
-            notificationPermission = Notification.permission;
-            
-            // 2. Pasang Listener Real-time
-            dbRef.on('value', (snapshot) => {
-                const timersData = snapshot.val() || {}; 
-
-                THAWING_ITEMS.forEach(item => {
-                    const itemId = item.id;
-                    const timerState = timersData[itemId];
-                    
-                    if (timerState && timerState.endTime) {
-                        const endTime = timerState.endTime;
-                        const inputMinutes = timerState.inputMinutes || item.defaultTimeMinutes;
-                        
-                        if (endTime < Date.now()) {
-                            tick(itemId, endTime, inputMinutes); 
-                        } else {
-                            tick(itemId, endTime, inputMinutes);
-                        }
-                    } else {
-                        // Timer TIDAK berjalan
-                        clearTimeout(activeIntervals[itemId]);
-                        delete activeIntervals[itemId];
-
-                        localResetUI(itemId, item.defaultTimeMinutes); 
-                    }
-                });
-            });
-        });
+        function clearSingleOrder(orderId) {
+            if (confirm("Serahkan pesanan dan hapus dari monitor antrian?")) {
+                rootOrdersRef.child(orderId).remove();
+            }
+        }
     </script>
 </body>
 </html>
