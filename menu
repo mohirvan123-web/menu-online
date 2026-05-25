@@ -30,7 +30,7 @@
         <div id="role-view" class="p-6 flex flex-col justify-center items-center my-auto space-y-6 w-full">
             <div class="text-center space-y-2">
                 <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm">📦</div>
-                <h2 class="text-xl font-extrabold text-slate-900 tracking-wide">GACOAN QC SYSTEM</h2>
+                <h2 class="text-xl font-extrabold text-slate-900 tracking-wide">GACOAN acc SYSTEM</h2>
                 <p class="text-xs text-slate-500 max-w-[250px] mx-auto">Pilih stasiun kerja Anda untuk memulai manajemen pesanan keluar.</p>
             </div>
             <div class="w-full space-y-3">
