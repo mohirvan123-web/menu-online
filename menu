@@ -5,22 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gacoan Delivery & QC System</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         .hidden { display: none; }
-        /* Memaksa video kamera memenuhi box viewport tanpa distorsi */
-        #interactive video, #interactive canvas {
+        /* Memastikan video kamera responsif dan pas di dalam kotak */
+        #interactive video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        canvas.drawingBuffer {
-            display: none; /* Menyembunyikan canvas coretan bawaan library */
+            border-radius: 1rem;
         }
     </style>
 </head>
@@ -42,10 +35,10 @@
                 <p class="text-xs text-slate-500 max-w-[250px] mx-auto">Pilih stasiun kerja Anda untuk memulai manajemen pesanan keluar.</p>
             </div>
             <div class="w-full space-y-3">
-                <button onclick="switchRole('packer')" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                <button onclick="switchRole('packer')" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md">
                     <span>📦 TIM PACKER</span>
                 </button>
-                <button onclick="switchRole('presenter')" class="w-full bg-slate-800 hover:bg-slate-900 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                <button onclick="switchRole('presenter')" class="w-full bg-slate-800 hover:bg-slate-900 active:scale-98 text-white font-bold py-4 rounded-xl transition shadow-md">
                     <span>💁‍♂️ TIM PRESENTER (MONITOR)</span>
                 </button>
             </div>
@@ -93,7 +86,9 @@
                 </div>
 
                 <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                    <div id="interactive" class="w-full h-full viewport"></div>
+                    <div id="interactive" class="w-full h-full">
+                        <video id="video-preview"></video>
+                    </div>
                     
                     <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
                         <div class="flex justify-between">
@@ -196,6 +191,7 @@
     </div>
 
     <script>
+        // 1. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyDummyKeyJanganLupaDigantiYa12345",
             authDomain: "gacoan-qc.firebaseapp.com",
@@ -210,6 +206,7 @@
         const database = firebase.database();
         const rootOrdersRef = database.ref('gacoan_active_orders');
 
+        // Master Database SKU Gacoan
         const gacoanSKUDatabase = {
             "8991000012345": "Mie Gacoan Lvl 1",
             "8991000056789": "Mie Hompimpa Lvl 3",
@@ -218,12 +215,18 @@
             "8993000022222": "Es Gobak Sodor"
         };
 
+        let codeReader = null;
         let packerTempItems = []; 
         let currentCustomerName = "";
         let currentCustomerNote = "";
-        let isScannerRunning = false;
         let lastScannedCode = "";
         let lastScannedTime = 0;
+
+        // Jam Live digital bagian atas
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
 
         function switchRole(role) {
             document.getElementById('role-view').classList.add('hidden');
@@ -248,85 +251,51 @@
             document.getElementById('packer-step-1').classList.add('hidden');
             document.getElementById('packer-step-2').classList.remove('hidden');
             
-            startQuagga1DScanner();
+            startZXing1DScanner();
         }
 
         function packerBackToStep1() {
-            stopQuaggaScanner();
+            stopZXingScanner();
             document.getElementById('packer-step-2').classList.add('hidden');
             document.getElementById('packer-step-1').classList.remove('hidden');
         }
 
-        // KUNCI INTI: Konfigurasi Quagga2 untuk Scan Barcode Garis Berkecepatan Tinggi
-        function startQuagga1DScanner() {
-            if (isScannerRunning) return;
+        // ================= KUNCI UTAMA SINKRONISASI BARCODE GARIS (1D) DECODER =================
+        function startZXing1DScanner() {
+            // Menggunakan BrowserBarcodeReader khusus untuk tipe Barcode Garis (1D)
+            codeReader = new ZXing.BrowserBarcodeReader();
+            
+            codeReader.decodeFromVideoDevice(undefined, 'video-preview', (result, err) => {
+                if (result) {
+                    const code = result.text;
+                    const now = Date.now();
 
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector('#interactive'),
-                    constraints: {
-                        width: 640,
-                        height: 480,
-                        facingMode: "environment", // Paksa kamera belakang
-                        aspectRatio: { min: 1, max: 2 }
-                    },
-                    singleChannel: false // Set true jika barcode dicetak hitam putih murni beresolusi rendah
-                },
-                locator: {
-                    patchSize: "medium",
-                    halfSample: true // Menghemat performa CPU HP agar pencarian barcode lebih ringan & cepat
-                },
-                // Set tipe-tipe kode batang (1D) komersial secara spesifik
-                decoder: {
-                    readers: [
-                        "code_128_reader",
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_39_reader",
-                        "upc_reader"
-                    ]
-                },
-                locate: true // Aktifkan fitur lokalisator posisi garis otomatis
-            }, function(err) {
-                if (err) {
-                    console.error("Gagal inisialisasi Quagga:", err);
-                    alert("Gagal mengakses kamera. Pastikan Anda menggunakan koneksi HTTPS.");
-                    return;
+                    // Mencegah scan ganda berturut-turut untuk item yang sama (Cooldown 1.5 detik)
+                    if (code === lastScannedCode && (now - lastScannedTime) < 1500) {
+                        return;
+                    }
+
+                    lastScannedCode = code;
+                    lastScannedTime = now;
+
+                    if (navigator.vibrate) navigator.vibrate(80); // Beri efek getar di HP
+                    
+                    insertItemToTempList(code);
                 }
-                Quagga.start();
-                isScannerRunning = true;
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.error("Kesalahan Sensor Kamera:", err);
+                }
+            }).catch(err => {
+                console.error("Gagal Mengakses Hardware Kamera:", err);
+                alert("Kamera gagal diakses. Pastikan Anda berada di jaringan aman (HTTPS / GitHub Pages).");
             });
-
-            // Callback Event ketika barcode terdeteksi
-            Quagga.onDetected(onBarcodeDetected);
         }
 
-        function stopQuaggaScanner() {
-            if (isScannerRunning) {
-                Quagga.stop();
-                isScannerRunning = false;
+        function stopZXingScanner() {
+            if (codeReader) {
+                codeReader.reset();
+                codeReader = null;
             }
-        }
-
-        function onBarcodeDetected(data) {
-            if (!data || !data.codeResult || !data.codeResult.code) return;
-            
-            const code = data.codeResult.code;
-            const now = Date.now();
-
-            // Proteksi Debounce (Mencegah scan ganda item yang sama dalam kurun waktu 1.5 detik)
-            if (code === lastScannedCode && (now - lastScannedTime) < 1500) {
-                return; 
-            }
-
-            lastScannedCode = code;
-            lastScannedTime = now;
-
-            if (navigator.vibrate) navigator.vibrate(80); // Umpan balik getar fisik HP
-            
-            insertItemToTempList(code);
         }
 
         function addBarcodeManual() {
@@ -340,7 +309,7 @@
 
         function insertItemToTempList(barcodeStr) {
             const timeStr = new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            const namaMenu = gacoanSKUDatabase[barcodeStr] || "SKU Asing (" + barcodeStr + ")";
+            const namaMenu = gacoanSKUDatabase[barcodeStr] || "SKU Baru (" + barcodeStr + ")";
             
             packerTempItems.push({
                 barcode: barcodeStr,
@@ -389,7 +358,7 @@
                 return;
             }
 
-            stopQuaggaScanner();
+            stopZXingScanner(); // Matikan kamera agar menghemat baterai HP tim dapur
 
             const timeFinal = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) + ' ' + new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
 
@@ -430,6 +399,7 @@
             document.getElementById('packer-step-1').classList.remove('hidden');
         }
 
+        // ================= MONITOR REAL-TIME SINKRONISASI PRESENTER =================
         function listenToPresenterDatabase() {
             rootOrdersRef.on('value', (snapshot) => {
                 const container = document.getElementById('presenter-live-orders');
