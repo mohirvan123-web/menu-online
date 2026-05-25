@@ -1,18 +1,27 @@
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gacoan Delivery & QC System</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         .hidden { display: none; }
-        /* Kustomisasi scrollbar halus untuk list menu */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        /* Memaksa video kamera memenuhi box viewport tanpa distorsi */
+        #interactive video, #interactive canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        canvas.drawingBuffer {
+            display: none; /* Menyembunyikan canvas coretan bawaan library */
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased font-sans">
@@ -84,24 +93,18 @@
                 </div>
 
                 <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-200 shadow-md">
-                    <div id="interactive" class="w-full h-full object-cover"></div>
+                    <div id="interactive" class="w-full h-full viewport"></div>
                     
-                    <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
+                    <div class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
                         <div class="flex justify-between">
                             <div class="w-6 h-6 border-t-4 border-l-4 border-blue-600 rounded-tl-sm"></div>
                             <div class="w-6 h-6 border-t-4 border-r-4 border-blue-600 rounded-tr-sm"></div>
                         </div>
-                        <div class="w-full h-0.5 bg-blue-500 opacity-80 shadow-[0_0_8px_#2563eb] animate-bounce"></div>
+                        <div class="w-full h-0.5 bg-red-500 opacity-90 shadow-[0_0_8px_#ef4444] animate-pulse"></div>
                         <div class="flex justify-between">
                             <div class="w-6 h-6 border-b-4 border-l-4 border-blue-600 rounded-bl-sm"></div>
                             <div class="w-6 h-6 border-b-4 border-r-4 border-blue-600 rounded-br-sm"></div>
                         </div>
-                    </div>
-
-                    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col justify-center items-center text-center p-4" id="camera-placeholder">
-                        <span class="text-3xl mb-1">📊</span>
-                        <p class="text-sm font-bold text-white">Siap untuk scan</p>
-                        <p class="text-[11px] text-slate-200 max-w-[200px] mt-0.5">Arahkan scanner ke barcode untuk menambahkan item</p>
                     </div>
                 </div>
 
@@ -149,17 +152,13 @@
 
                     <div class="space-y-2">
                         <h4 class="text-xs font-bold text-slate-600 px-1">Daftar Barcode</h4>
-                        <div id="summary-barcode-list" class="divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-white max-h-48 overflow-y-auto space-y-1">
-                            </div>
+                        <div id="summary-barcode-list" class="divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-white max-h-48 overflow-y-auto space-y-1"></div>
                     </div>
                 </div>
 
                 <div class="space-y-2 pt-2">
                     <button onclick="resetToNewOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md text-sm transition">
                         ➕ PESANAN BARU
-                    </button>
-                    <button onclick="location.reload()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl border border-slate-200 text-sm transition">
-                        🔄 LIHAT RIWAYAT
                     </button>
                 </div>
             </div>
@@ -174,12 +173,10 @@
                     </div>
                     <span id="presenter-order-count" class="bg-blue-500/20 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-md border border-blue-500/30">0 Pesanan</span>
                 </div>
-
                 <div id="presenter-live-orders" class="flex-grow overflow-y-auto space-y-4 pr-1">
                     <p class="text-slate-500 text-center py-20 text-sm italic">Belum ada pesanan masuk dari Tim Packer...</p>
                 </div>
             </div>
-            
             <button onclick="location.reload()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition text-xs border border-slate-300">
                 ← KEMBALI KE SELEKSI ROLE
             </button>
@@ -192,14 +189,13 @@
             <span class="text-xl">📋</span>
             <span>Pesanan Keluar</span>
         </button>
-        <button onclick="alert('Fitur Riwayat dalam pengembangan operasional')" class="flex flex-col items-center space-y-1 hover:text-slate-600 transition">
+        <button onclick="alert('Fitur Riwayat dalam pengembangan')" class="flex flex-col items-center space-y-1 hover:text-slate-600 transition">
             <span class="text-xl">📁</span>
             <span>Riwayat</span>
         </button>
     </div>
 
     <script>
-        // 1. DATABASE FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyDummyKeyJanganLupaDigantiYa12345",
             authDomain: "gacoan-qc.firebaseapp.com",
@@ -214,7 +210,6 @@
         const database = firebase.database();
         const rootOrdersRef = database.ref('gacoan_active_orders');
 
-        // SKU Master Data Gacoan (Barcode Garis 1D)
         const gacoanSKUDatabase = {
             "8991000012345": "Mie Gacoan Lvl 1",
             "8991000056789": "Mie Hompimpa Lvl 3",
@@ -223,18 +218,13 @@
             "8993000022222": "Es Gobak Sodor"
         };
 
-        let html5QrCode = null;
-        let packerTempItems = []; // Array menampung list scan sebelum disubmit final
+        let packerTempItems = []; 
         let currentCustomerName = "";
         let currentCustomerNote = "";
+        let isScannerRunning = false;
+        let lastScannedCode = "";
+        let lastScannedTime = 0;
 
-        // Jam Live digital bagian atas
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('live-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-        }, 1000);
-
-        // 2. CONTROLLER ROLE & NAVIGATION
         function switchRole(role) {
             document.getElementById('role-view').classList.add('hidden');
             if (role === 'packer') {
@@ -245,11 +235,10 @@
             }
         }
 
-        // --- PACKER FLOW LOGIC ---
         function packerGoToStep2() {
             const name = document.getElementById('cust-name-input').value.trim();
             if (!name) {
-                alert("Harap masukkan Nama Customer atau Nomor Antrean terlebih dahulu!");
+                alert("Harap masukkan Nama Customer / No. Meja!");
                 return;
             }
             currentCustomerName = name;
@@ -259,54 +248,85 @@
             document.getElementById('packer-step-1').classList.add('hidden');
             document.getElementById('packer-step-2').classList.remove('hidden');
             
-            // Sembunyikan instruksi placeholder, jalankan kamera asli
-            document.getElementById('camera-placeholder').classList.add('hidden');
-            start1DHighSpeedScanner();
+            startQuagga1DScanner();
         }
 
         function packerBackToStep1() {
-            stopScanner();
+            stopQuaggaScanner();
             document.getElementById('packer-step-2').classList.add('hidden');
             document.getElementById('packer-step-1').classList.remove('hidden');
         }
 
-        // ENGINE DETEKSI BARCODE GARIS (1D)
-        function start1DHighSpeedScanner() {
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("interactive");
-                const config = {
-                    fps: 25, // Pemindaian super cepat (25 frame per detik)
-                    qrbox: function(w, h) { return { width: w * 0.85, height: h * 0.45 }; }, // Bingkai pipih horizontal cocok untuk barcode garis
-                    aspectRatio: 1.333333, // Proporsional layar HP Android & iOS Safari standar
-                    // KUNCI UTAMA: Daftarkan semua format kode batang garis (1D) komersial
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.CODE_39
-                    ],
-                    experimentalFeatures: { useBarCodeDetectorIfSupported: true } // Akselerasi hardware bawaan HP
-                };
-                html5QrCode.start({ facingMode: "environment" }, config, onBarcodeDetected).catch(err => console.error(err));
+        // KUNCI INTI: Konfigurasi Quagga2 untuk Scan Barcode Garis Berkecepatan Tinggi
+        function startQuagga1DScanner() {
+            if (isScannerRunning) return;
+
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: {
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment", // Paksa kamera belakang
+                        aspectRatio: { min: 1, max: 2 }
+                    },
+                    singleChannel: false // Set true jika barcode dicetak hitam putih murni beresolusi rendah
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true // Menghemat performa CPU HP agar pencarian barcode lebih ringan & cepat
+                },
+                // Set tipe-tipe kode batang (1D) komersial secara spesifik
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "upc_reader"
+                    ]
+                },
+                locate: true // Aktifkan fitur lokalisator posisi garis otomatis
+            }, function(err) {
+                if (err) {
+                    console.error("Gagal inisialisasi Quagga:", err);
+                    alert("Gagal mengakses kamera. Pastikan Anda menggunakan koneksi HTTPS.");
+                    return;
+                }
+                Quagga.start();
+                isScannerRunning = true;
+            });
+
+            // Callback Event ketika barcode terdeteksi
+            Quagga.onDetected(onBarcodeDetected);
+        }
+
+        function stopQuaggaScanner() {
+            if (isScannerRunning) {
+                Quagga.stop();
+                isScannerRunning = false;
             }
         }
 
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => { html5QrCode = null; }).catch(err => console.log(err));
-            }
-        }
-
-        function onBarcodeDetected(decodedText, decodedResult) {
-            // Cooldown haptic feedback getar singkat
-            if (navigator.vibrate) navigator.vibrate(60);
+        function onBarcodeDetected(data) {
+            if (!data || !data.codeResult || !data.codeResult.code) return;
             
-            // Tambahkan item secara otomatis ke list sementara
-            insertItemToTempList(decodedText);
+            const code = data.codeResult.code;
+            const now = Date.now();
 
-            // Jeda sejenak 1 detik agar tidak terscan ganda tanpa sengaja
-            html5QrCode.pause(true);
-            setTimeout(() => { if (html5QrCode) html5QrCode.resume(); }, 1000);
+            // Proteksi Debounce (Mencegah scan ganda item yang sama dalam kurun waktu 1.5 detik)
+            if (code === lastScannedCode && (now - lastScannedTime) < 1500) {
+                return; 
+            }
+
+            lastScannedCode = code;
+            lastScannedTime = now;
+
+            if (navigator.vibrate) navigator.vibrate(80); // Umpan balik getar fisik HP
+            
+            insertItemToTempList(code);
         }
 
         function addBarcodeManual() {
@@ -363,19 +383,16 @@
             });
         }
 
-        // STEP 3: EXECUTE SUBMIT TO CLOUD
         function packerGoToStep3() {
             if (packerTempItems.length === 0) {
-                alert("Daftar item kosong! Harap scan minimal 1 produk sebelum lanjut.");
+                alert("Daftar item kosong! Harap scan minimal 1 produk.");
                 return;
             }
 
-            stopScanner(); // Matikan kamera total
+            stopQuaggaScanner();
 
-            // Ambil waktu penyerahan final
             const timeFinal = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) + ' ' + new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
 
-            // PUSH STRUKTUR DATA KE FIREBASE
             rootOrdersRef.push({
                 customer: currentCustomerName,
                 catatan: currentCustomerNote,
@@ -383,7 +400,6 @@
                 items: packerTempItems
             });
 
-            // Tampilkan data ke Ringkasan Final UI Halaman 3
             document.getElementById('summary-cust-name').innerText = currentCustomerName;
             document.getElementById('summary-time').innerText = timeFinal;
             document.getElementById('summary-total-item').innerText = `${packerTempItems.length} Barcode`;
@@ -414,8 +430,6 @@
             document.getElementById('packer-step-1').classList.remove('hidden');
         }
 
-
-        // --- PRESENTER FLOW LOGIC (MONITOR REAL-TIME) ---
         function listenToPresenterDatabase() {
             rootOrdersRef.on('value', (snapshot) => {
                 const container = document.getElementById('presenter-live-orders');
@@ -429,7 +443,6 @@
                         const order = allOrders[orderId];
                         count++;
 
-                        // Hitung Summary Qty per Jenis Menu
                         const itemSummary = {};
                         order.items.forEach(it => {
                             itemSummary[it.nama] = (itemSummary[it.nama] || 0) + 1;
